@@ -1,0 +1,87 @@
+'@type': "SoftwareComponentType"
+createdDate: "2016-12-03T20:34:30.479Z"
+lastUpdated: "2016-12-04T03:55:40.321Z"
+id: "Software.WindowsDockerEngine"
+name: "Windows Docker Engine"
+description: "Installs and configures Docker engine on Windows Server 2016."
+publishStatus: "PUBLISHED"
+publishStatusName: "Published"
+schema:
+  fields:
+  - id: "host"
+    label: "Container"
+    description: ""
+    dataType:
+      type: "ref"
+      componentTypeId: "com.vmware.csp.iaas.blueprint.service"
+      classId: "Infrastructure.Machine.Schema"
+      label: "Machine"
+    state:
+      dependencies: []
+      facets:
+      - type: "internal"
+        value:
+          type: "constantClause"
+          value:
+            type: "boolean"
+            value: true
+      - type: "mandatory"
+        value:
+          type: "constant"
+          value:
+            type: "boolean"
+            value: true
+      - type: "visible"
+        value:
+          type: "constantClause"
+          value:
+            type: "boolean"
+            value: false
+    isMultiValued: false
+containerFieldId: "host"
+lifecycleTasks:
+- createdDate: "2016-12-03T20:34:30.480Z"
+  lastUpdated: "2016-12-05T21:57:21.007Z"
+  script:
+    scriptContent: "#Opens firewall port 2375 on all profiles\nWrite-Output \"Setting\
+      \ up firewall rules to allow inbound access to Docker Engine.\"\nnetsh advfirewall\
+      \ firewall add rule name=\"Docker Engine\" dir=in action=allow protocol=TCP\
+      \ localport=2375\n#Configures the Docker service to restart upon failures\n\
+      Write-Output \"Configuring the Docker service to restart upon failures.\"\n\
+      sc.exe failure docker reset=60 actions=restart/5000/restart/5000/restart/5000"
+    isRebootAfter: false
+    scriptTypeId: "powershell"
+  taskDescriptorRef:
+    id: "CONFIGURE"
+    label: "Configure"
+- createdDate: "2016-12-03T20:34:30.481Z"
+  lastUpdated: "2016-12-05T21:57:21.007Z"
+  script:
+    scriptContent: "#Installs NuGet\nWrite-Output \"Installing NuGet\"\nInstall-PackageProvider\
+      \ -Name NuGet -Force\nStart-Sleep -s 10\nWrite-Output \"Installing the Docker\
+      \ PowerShell provider.\"\nInstall-Module -Name DockerMsftProvider -Force\nStart-Sleep\
+      \ -s 10\n#Installs the container feature and Docker engine binaries\nWrite-Output\
+      \ \"Installing the Containers feature and the Docker Engine.\"\nInstall-Package\
+      \ -Name docker -ProviderName DockerMsftProvider -Force\nStart-Sleep -s 10\n\
+      #Configures the Docker service to listen on local sockets and any assigned IP\
+      \ over TCP 2375 (insecure)\nWrite-Output \"Configuring the Docker service to\
+      \ listen on local sockets and TCP 2375.\"\nsc.exe config Docker binPath=\"C:\\\
+      Program Files\\docker\\dockerd.exe --run-service -H npipe:// -H 0.0.0.0:2375\""
+    isRebootAfter: true
+    scriptTypeId: "powershell"
+  taskDescriptorRef:
+    id: "INSTALL"
+    label: "Install"
+- createdDate: "2016-12-05T19:25:05.878Z"
+  lastUpdated: "2016-12-05T21:57:21.007Z"
+  script:
+    scriptContent: "#Determines if the Docker service is running.\n$docker=Get-Service\
+      \ -Name docker\nif ($docker.Status -ne \"Running\"){\n     Write-Output \"Docker\
+      \ does not seem to be running. You may need to login locally for the first time\
+      \ to get the NAT driver installed before using the Docker API.\"}\nelse {\n\
+      \     Write-Output \"Docker is running.\"}"
+    isRebootAfter: false
+    scriptTypeId: "powershell"
+  taskDescriptorRef:
+    id: "START"
+    label: "Start"
