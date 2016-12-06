@@ -1,6 +1,6 @@
 '@type': "SoftwareComponentType"
 createdDate: "2016-12-03T20:34:30.479Z"
-lastUpdated: "2016-12-04T03:55:40.321Z"
+lastUpdated: "2016-12-06T20:12:28.090Z"
 id: "Software.WindowsDockerEngine"
 name: "Windows Docker Engine"
 description: "Installs and configures Docker engine on Windows Server 2016."
@@ -8,6 +8,57 @@ publishStatus: "PUBLISHED"
 publishStatusName: "Published"
 schema:
   fields:
+  - id: "WinDockerUsername"
+    label: "WinDockerUsername"
+    description: "Used for one-time auto login as part of the Docker Engine install\
+      \ process. Can be any user with permissions to login to deployed VM."
+    dataType:
+      type: "primitive"
+      typeId: "STRING"
+    state:
+      dependencies: []
+      facets:
+      - type: "defaultValue"
+        value:
+          type: "constant"
+          value:
+            type: "string"
+            value: "Administrator"
+      - type: "mandatory"
+        value:
+          type: "constant"
+          value:
+            type: "boolean"
+            value: true
+    isMultiValued: false
+  - id: "WinDockerPassword"
+    label: "WinDockerPassword"
+    description: "Password for auto login username."
+    dataType:
+      type: "primitive"
+      typeId: "SECURE_STRING"
+    state:
+      dependencies: []
+      facets:
+      - type: "encrypted"
+        value:
+          type: "constant"
+          value:
+            type: "boolean"
+            value: true
+      - type: "defaultValue"
+        value:
+          type: "constant"
+          value:
+            type: "secureString"
+            value: ""
+      - type: "mandatory"
+        value:
+          type: "constant"
+          value:
+            type: "boolean"
+            value: true
+    isMultiValued: false
   - id: "host"
     label: "Container"
     description: ""
@@ -25,37 +76,42 @@ schema:
           value:
             type: "boolean"
             value: true
-      - type: "mandatory"
-        value:
-          type: "constant"
-          value:
-            type: "boolean"
-            value: true
       - type: "visible"
         value:
           type: "constantClause"
           value:
             type: "boolean"
             value: false
+      - type: "mandatory"
+        value:
+          type: "constant"
+          value:
+            type: "boolean"
+            value: true
     isMultiValued: false
 containerFieldId: "host"
 lifecycleTasks:
 - createdDate: "2016-12-03T20:34:30.480Z"
-  lastUpdated: "2016-12-05T21:57:21.007Z"
+  lastUpdated: "2016-12-06T20:12:28.090Z"
   script:
     scriptContent: "#Opens firewall port 2375 on all profiles\nWrite-Output \"Setting\
       \ up firewall rules to allow inbound access to Docker Engine.\"\nnetsh advfirewall\
       \ firewall add rule name=\"Docker Engine\" dir=in action=allow protocol=TCP\
       \ localport=2375\n#Configures the Docker service to restart upon failures\n\
       Write-Output \"Configuring the Docker service to restart upon failures.\"\n\
-      sc.exe failure docker reset=60 actions=restart/5000/restart/5000/restart/5000"
-    isRebootAfter: false
+      sc.exe failure docker reset=60 actions=restart/5000/restart/5000/restart/5000\n\
+      #Removing auto login\n$RegPath = \"HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\\
+      CurrentVersion\\Winlogon\" \nWrite-Output \"Now removing auto logon from system.\"\
+      \nRemove-ItemProperty -Path $RegPath -Name \"AutoAdminLogon\"\nRemove-ItemProperty\
+      \ -Path $RegPath -Name \"DefaultUsername\"\nRemove-ItemProperty -Path $RegPath\
+      \ -Name \"DefaultPassword\"\nWrite-Output \"Rebooting VM one last time.\""
+    isRebootAfter: true
     scriptTypeId: "powershell"
   taskDescriptorRef:
     id: "CONFIGURE"
     label: "Configure"
 - createdDate: "2016-12-03T20:34:30.481Z"
-  lastUpdated: "2016-12-05T21:57:21.007Z"
+  lastUpdated: "2016-12-06T20:12:28.090Z"
   script:
     scriptContent: "#Installs NuGet\nWrite-Output \"Installing NuGet\"\nInstall-PackageProvider\
       \ -Name NuGet -Force\nStart-Sleep -s 10\nWrite-Output \"Installing the Docker\
@@ -66,20 +122,27 @@ lifecycleTasks:
       #Configures the Docker service to listen on local sockets and any assigned IP\
       \ over TCP 2375 (insecure)\nWrite-Output \"Configuring the Docker service to\
       \ listen on local sockets and TCP 2375.\"\nsc.exe config Docker binPath=\"C:\\\
-      Program Files\\docker\\dockerd.exe --run-service -H npipe:// -H 0.0.0.0:2375\""
+      Program Files\\docker\\dockerd.exe --run-service -H npipe:// -H 0.0.0.0:2375\"\
+      \n#Sets up one-time auto-login in order to install Hyper-V switch component\
+      \ to get Docker service to start.\n$RegPath = \"HKLM:\\SOFTWARE\\Microsoft\\\
+      Windows NT\\CurrentVersion\\Winlogon\" \nWrite-Output \"Setting up one-time\
+      \ auto logon so Docker can start.\" \nSet-ItemProperty $RegPath \"AutoAdminLogon\"\
+      \ -Value \"1\" -type String  \nSet-ItemProperty $RegPath \"DefaultUsername\"\
+      \ -Value \"$WinDockerUsername\" -type String  \nSet-ItemProperty $RegPath \"\
+      DefaultPassword\" -Value \"$WinDockerPassword\" -type String"
     isRebootAfter: true
     scriptTypeId: "powershell"
   taskDescriptorRef:
     id: "INSTALL"
     label: "Install"
 - createdDate: "2016-12-05T19:25:05.878Z"
-  lastUpdated: "2016-12-05T21:57:21.007Z"
+  lastUpdated: "2016-12-06T20:12:28.090Z"
   script:
     scriptContent: "#Determines if the Docker service is running.\n$docker=Get-Service\
       \ -Name docker\nif ($docker.Status -ne \"Running\"){\n     Write-Output \"Docker\
       \ does not seem to be running. You may need to login locally for the first time\
       \ to get the NAT driver installed before using the Docker API.\"}\nelse {\n\
-      \     Write-Output \"Docker is running.\"}"
+      \     Write-Output \"Docker is running!\"}"
     isRebootAfter: false
     scriptTypeId: "powershell"
   taskDescriptorRef:

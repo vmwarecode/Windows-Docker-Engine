@@ -1,7 +1,7 @@
-name: "auto-generated-pkg-1bf3f3b9-f189-4d0d-b9fd-8f8e93003d29"
+name: "auto-generated-pkg-f9a421be-04b7-40fb-96c2-50f638a9f389"
 productVersion: "7.2.0-SNAPSHOT"
 data:
 - locator: "software-component/Software.WindowsDockerEngine.yaml"
   name: "Windows Docker Engine"
   description: "Installs and configures Docker engine on Windows Server 2016."
-exportTime: "2016-12-05T21:58:44.987Z"
+exportTime: "2016-12-06T20:13:40.213Z"
